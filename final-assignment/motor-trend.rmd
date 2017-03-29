@@ -3,6 +3,7 @@ title: "Motor Trend"
 author: "Chandrasekar Ganesan"
 date: "March 27, 2017"
 output:
+  html_document: default
   pdf_document: default
 ---
 
