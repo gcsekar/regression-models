@@ -1,0 +1,119 @@
+---
+title: "Motor Trend"
+author: "Chandrasekar Ganesan"
+date: "March 27, 2017"
+output:
+  pdf_document: default
+---
+
+#Instructions
+
+You work for Motor Trend, a magazine about the automobile industry. Looking at a data set of a collection of cars, they are interested in exploring the relationship between a set of variables and miles per gallon (MPG) (outcome). They are particularly interested in the following two questions:
+
+* “Is an automatic or manual transmission better for MPG”
+* "Quantify the MPG difference between automatic and manual transmissions"
+
+
+#Load the Data
+
+```{r}
+data(mtcars)
+summary(mtcars)
+
+```
+
+#Exploratory Analysis
+
+```{r}
+temp <- mtcars
+temp$am <- as.factor(temp$am)
+levels(temp$am) <- c("Automatic","Manual")
+plot(temp$am, temp$mpg, ylab="Miles Per Gallon (mpg)",
+     main="Effect of Transmission to MPG")
+
+mauto <- median(temp[temp$am=="Automatic",]$mpg)
+mman <- median(temp[temp$am=="Manual",]$mpg)
+
+arrows(1.5,mauto, 1.5, mman, lty=1, lwd=2, col="red", length=0.25, angle=20)
+
+
+```
+
+As it can be clearly seen, that **mgp** is higher in vehicles with manual transmission when compared to vehicles with Automatic transmission.
+
+#Deeper Dive
+
+#Hypothesis
+
+Let's define a two sided hypothesis test as follows:
+
+1) **H0** - Miles per gallon is not influenced by automatic or manual transmission (null hypothesis)
+2) **H1** - Miles per gallon is influenced by automatic or manual transmission
+
+Let's quantify the variation via regression analysis.
+
+Understanding the correlations of mtcars dataset
+
+```{r}
+data(mtcars)
+library(corrgram)
+corrgram(mtcars, order=TRUE, lower.panel=panel.shade,
+   upper.panel=panel.pie, text.panel=panel.txt,
+   main="Car Milage Data in PC2/PC1 Order")
+```
+
+It is evident that **mpg** is highly correlated with **gear, am, wt, disp, cyl, hp** and **qsec**
+
+But it is imperative we reduce the variable set to avoid overfitting or underfitting.
+
+Let's use elimination process to remove unrelated variables. Do a multi variable regression with mpg as outcome based on all variables.
+
+```{r}
+fit <- lm(mpg ~ ., data=mtcars)
+summary(fit)$coef
+```
+
+Looking at the result **cyl** has a high P value of **0.91608738**. Let's eliminate this and rerun the regression with the rest as follows:
+
+```{r}
+fit <- lm(mpg ~ disp+hp+drat+wt+qsec+vs+am+gear+carb, data=mtcars)
+summary(fit)$coef
+```
+
+We repeat the process recursively until we get a model with dependent variables that has P value < 0.05
+
+The model variables that impacts **mpg** are **wt, qsec, am** as shown below. Let's run the final regression on the selected dependent variables.
+
+```{r}
+fit <- lm(mpg ~ wt+qsec+am -1, data=mtcars)
+summary(fit)$coef
+```
+
+Observe that P-value for **am** is 2.329423e-04, much less than 0.05. We have enough evidence to reject the null hypothesis *(H0)*
+
+#Exploring Results
+
+```{r}
+par(mfrow=c(2,2), mar=c(2,2,2,.5), font.main=1, font.sub=1, cex.lab=1, cex.axis=1)
+plot(fit, cex=0.8, pch=19, col=rgb(0,1,.75,0.4))
+```
+
+#Conclusion
+
+Our plot is not showing any pattern. The linear model we have is a reasonable fit.
+
+Let's quantify the MPG difference between *automatic* and *manual transmission*
+
+```{r}
+coefs <- summary(fit)$coef
+mpgRange <- coefs["am",1] + c(-1,1) * qt(0.975, df = fit$df) * coefs["am",2]
+print(mpgRange)
+
+```
+
+Based on 95% confidence, we can estimate that *switching to manual transmission from automatic transmission will result in an average of 2.2 to 6.4 miles per gallon*.
+
+Hence manual transmission is **better** than automatic transmission
+
+
+
